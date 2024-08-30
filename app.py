@@ -1,39 +1,32 @@
-import librosa
-import numpy as np 
+import sounddevice as sd
+import numpy as np
+import wave
 
+# Parameters for the recording
+duration = 10  # Duration of recording in seconds
+sample_rate = 44100  # Sample rate (44100 samples per second)
+channels = 1  # Mono audio (use 2 for stereo)
 
-def extract_features(audio_file):
-  y, sr = librosa.load(audio_file)
-  mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-  return mfccs
+# File to save the recording
+output_file = "recorded3.wav"
 
-def calculate_similarity(audio_file1, audio_file2):
-  mfccs1 = extract_features(audio_file1)
-  mfccs2 = extract_features(audio_file2)
-  min_length = min(mfccs1.shape[1], mfccs2.shape[1])
-  mfccs1 = mfccs1[:, :min_length]
-  mfccs2 = mfccs2[:, :min_length]
-  
-  # Normalize MFCCs
-  mfccs1 = mfccs1 / np.linalg.norm(mfccs1)
-  mfccs2 = mfccs2 / np.linalg.norm(mfccs2)
-  
-  similarity = np.dot(mfccs1.flatten(), mfccs2.flatten())
-  return similarity
+def record_audio():
+    print("Recording started...")
+    
+    # Record audio
+    recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=channels, dtype='int16')
+    sd.wait()  # Wait for the recording to finish
+    
+    print("Recording finished...")
+    
+    # Save the recording to a file
+    with wave.open(output_file, 'wb') as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2)  # Number of bytes per sample
+        wf.setframerate(sample_rate)
+        wf.writeframes(recording.tobytes())
 
-def find_closest_audio(audio_file1, audio_file2, audio_file3):
-  similarity1 = calculate_similarity(audio_file1, audio_file3)
-  similarity2 = calculate_similarity(audio_file2, audio_file3)
-  
-  if similarity1 > similarity2:
-    return audio_file1
-  else:
-    return audio_file2
+    print(f"Recording saved as {output_file}")
 
-# Example usage
-audio1 = '/content/footsteps-1.wav'
-audio2 = '/content/truck-departing-01.wav'
-audio3 = '/content/truck-departing-02.wav'
-
-closest_audio = find_closest_audio(audio1, audio2, audio3)
-print(f"Audio file closest to {audio3} is: {closest_audio}")
+# Call the function to start recording
+record_audio()
